@@ -1,1 +1,292 @@
+clc;clear;close all
 
+data =xlsread('G:\Sample_1_after_landslide.xlsx');
+
+melon_data=sqrt(data(:,3).^2+data(:,4).^2);
+
+k = 2;
+
+likelihold = 0;
+
+likeli_value =[];
+
+max_loop = 1000;
+
+for loop =1:max_loop
+
+[m,n] =size(melon_data);
+
+alpha = ones(1,k).*(1/k);
+
+mu = ones(k,n);
+
+mu(1,:) = 1.5;
+
+mu(2,:) = 0.1; 
+
+sigma=[0.1;1];
+
+k=2;
+[m,~] =size(melon_data);
+
+guass_prob = zeros(1,k);
+
+post_prob = zeros(m,k);
+
+class_box = zeros(m,2*k);
+
+guass_value = [];
+
+xuhao=data(:,5);
+
+for i = 1:m 
+
+for j = 1:k 
+
+        guass_prob(1,j)=1/(sqrt(2*pi)*sigma(j,:))*exp((-1/2)*((melon_data(i,:)-mu(j,:))/sigma(j,:)));%计算概率
+end
+   
+    post_prob(i,:) = alpha.*guass_prob/(sum(alpha.*guass_prob));
+
+    [~,max_ind] = max(post_prob(i,:));
+    
+    zero_ind = find(class_box(:,2*max_ind)==0);
+   
+    class_box(zero_ind(1),max_ind*2-1:max_ind*2) = [melon_data(i,:),xuhao(i,:)];
+    
+    guass_value = [guass_value;guass_prob];
+end
+
+[m,n] =size(melon_data);
+
+[~,k] = size(post_prob);
+
+alpha = zeros(1,k);
+
+mu = ones(k,n);
+
+sigma = zeros(k*n,n);
+
+for i = 1:k
+
+    mu(i,:) = sum(melon_data.*post_prob(:,i))/sum(post_prob(:,i));
+    
+    sigma(i,:)=sum((melon_data-mu(i,:)).*(melon_data-mu(i,:)).*post_prob(:,i))/sum(post_prob(:,i));
+    
+    alpha(i) = sum(post_prob(:,i))/m;
+    
+end
+
+cur_likelihold=likelihold;
+
+likelihold = 0;
+
+[m,n] =size(melon_data);
+
+for j =1:m
+
+    likelihold = likelihold +log(alpha*guass_value(j,:)');
+    
+end
+
+is_stop = 0;
+
+if loop==1
+
+    is_stop = 0;
+    
+end
+
+if loop>1 &&(abs(cur_likelihold - likelihold)<0.001)
+
+    is_stop = 1;
+    
+else
+
+    is_stop = 0;
+    
+end
+
+LLD = cur_likelihold;
+
+likeli_value = [likeli_value;likelihold];
+
+    if is_stop ||loop >max_loop
+    
+        break;
+        
+    end
+    
+end
+
+c=class_box(:,4);
+
+c(c==0)=[];
+
+[h,j]=size(c);
+
+G=[];
+
+GA=data(:,5);
+
+for i=1:h
+
+   [dx,kl]=find(GA==c(i));
+   
+   G=[G;data(dx,:)];
+   
+end      
+
+scatter(G(:,1),G(:,2),'field')
+
+hold on
+
+d=class_box(:,2);
+
+d(d==0)=[];
+
+[h,j]=size(d);
+
+G1=[];
+
+GA=data(:,5);
+
+for i=1:h
+
+   [dx,kl]=find(GA==d(i));
+   
+   G1=[G1;data(dx,:)];
+   
+end       
+
+scatter(G1(:,1),G1(:,2),'field')
+
+diyileihuadongmian=G;
+
+dierleihuadongmian=G1;
+
+[uji,lop]=size(diyileihuadongmian);
+
+[lkm,jkp]=size(dierleihuadongmian);
+
+if uji>lkm
+
+    fenzu=dierleihuadongmian;
+    
+else
+
+    fenzu=diyileihuadongmian;
+    
+end
+
+[mm,nn]=size(fenzu);
+
+aa=fenzu(:,2);
+
+aaa=fenzu(:,1);
+
+bb=unique(aa);
+
+[hh,jj]=size(bb);
+
+huadongxian=[];
+
+for i=1:hh 
+
+    moyihang=[];
+    
+    for j=1:mm
+    
+        if aa(j)==bb(i)
+        
+           moyihang=[moyihang,j];
+           
+        end
+        
+    end
+    
+    kkk=aaa(moyihang);
+    
+    ggg=max(kkk);
+    
+    ggg=ggg(1);
+    
+    hgf=[ggg,bb(i)];
+    
+    huadongxian=[huadongxian;hgf];
+    
+end
+
+scatter(huadongxian(:,1),huadongxian(:,2))
+ 
+shp = alphaShape(huadongxian(:,1),huadongxian(:,2));
+
+AA=huadongxian(:,1);
+
+BB=huadongxian(:,2);
+
+plot(shp);
+
+a=shp.boundaryFacets;
+
+ww=AA(a(:,1));
+
+ss=BB(a(:,2));
+
+scatter(ww,ss)
+
+zuidi_y=find(ww==min(ww));
+
+zuididian=[ww(zuidi_y) ss(zuidi_y)];
+
+zuiyoudian_x=find(ww==max(ww));
+
+zuiyoudian=[ww(zuiyoudian_x) ss(zuiyoudian_x)];
+
+k=(zuiyoudian(:,2)-zuididian(:,2))/(zuiyoudian(:,1)-zuididian(:,1));
+
+[uni,opg]=size(ww);
+
+zuizhonghuadongxian=[zuididian];
+
+for i=1:uni
+
+    x1=zuididian(:,1);
+    
+    y1=zuididian(:,2);
+    
+    x2=ww(i);
+    
+    y2=ss(i);
+    
+    k1=abs((y2-y1)/(x2-x1));
+    
+    if k1<k&&x2>x1
+    
+        okp=[x2 y2];
+        
+        zuizhonghuadongxian=[zuizhonghuadongxian;okp];
+        
+    end
+    
+end
+
+zuizhonghuadongxian=[zuizhonghuadongxian;zuiyoudian];
+
+scatter(zuizhonghuadongxian(:,1),zuizhonghuadongxian(:,2))
+
+polyfit(zuizhonghuadongxian(:,1),zuizhonghuadongxian(:,2),3);
+
+hold on
+
+y_y=ans(1)*zuizhonghuadongxian(:,1).^3+ans(2)*zuizhonghuadongxian(:,1).^2+ans(3)*zuizhonghuadongxian(:,1)+ans(4);
+
+scatter(zuizhonghuadongxian(:,1),y_y)
+
+hold on
+
+zuizhonghuadongxian(:,1)=sort(zuizhonghuadongxian(:,1));
+
+y_y=sort(y_y);
+
+plot(zuizhonghuadongxian(:,1),y_y)
